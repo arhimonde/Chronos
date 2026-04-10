@@ -1,64 +1,64 @@
-# Chronos: Sistem de Ingerare și Analiză Polymarket
+# Chronos: High-Performance Polymarket Ingestion & Analytics
 
-Chronos este un sistem de înaltă performanță proiectat pentru a urmări în timp real datele de tranzacționare de pe Polymarket CLOB (Central Limit Order Book). Acesta este optimizat pentru a rula pe hardware de tip Edge (precum **NVIDIA Jetson Orin Nano**) folosind un NVMe extern pentru persistență bazată pe **TimescaleDB**.
+Chronos is a high-performance data pipeline designed to track real-time trade events from the Polymarket CLOB (Central Limit Order Book). It is optimized to run on Edge hardware (like the **NVIDIA Jetson Orin Nano**) using external NVMe storage powered by **TimescaleDB**.
 
-## 🚀 Arhitectură
+## 🚀 Architecture
 
-Sistemul este împărțit în trei componente principale:
+The system consists of three main components core to high-frequency data handling:
 
-1.  **Ingestion Service (Rust):** Un serviciu asincron construit cu `tokio` și `tokio-tungstenite` care se conectează la WebSocket-ul Polymarket. Acesta ascultă evenimentele de tip `price_change` sau `last_trade_price` și le salvează instantaneu în baza de date.
-2.  **Database (TimescaleDB/PostgreSQL):** Rulează în Docker și folosește extensia TimescaleDB pentru a optimiza stocarea seriilor temporale (time-series). Datele sunt stocate într-un `hypertable` pentru interogări ultra-rapide.
-3.  **Analytics API (Python/FastAPI):** Un server web care oferă endpoint-uri pentru calcularea indicatorilor tehnici, cum ar fi **Media Mobilă (Rolling Moving Average)** pe o oră, folosind `pandas` pentru procesare eficientă.
+1.  **Ingestion Service (Rust):** An asynchronous service built with `tokio` and `tokio-tungstenite` that connects to the Polymarket WebSocket. it listens for `price_change` or `last_trade_price` events and persists them instantly to the database.
+2.  **Database (TimescaleDB/PostgreSQL):** Runs in Docker using the TimescaleDB extension for time-series optimization. Data is stored in a `hypertable` for ultra-fast time-based queries.
+3.  **Analytics API (Python/FastAPI):** A lightweight web server providing endpoints for calculating technical indicators, such as **1-hour Rolling Moving Averages**, leveraging `pandas` for efficient ARM64-optimized processing.
 
-## 🛠️ Instalare
+## 🛠️ Installation
 
-### Cerințe minime
-*   **Docker** și **Docker Compose**
-*   **Rust** (cargo)
+### Prerequisites
+*   **Docker** & **Docker Compose**
+*   **Rust Toolchain** (cargo)
 *   **Python 3.10+**
-*   Acces SSH la dispozitivul Jetson (dacă rulați remote)
+*   SSH access to your Jetson device (if deploying remotely).
 
-### Pași pentru pornire rapidă
+### Quick Start
 
-1.  **Clonează repozitoriul:**
+1.  **Clone the repository:**
     ```bash
     git clone https://github.com/arhimonde/Chronos.git
     cd Chronos
     ```
 
-2.  **Configurare:**
-    Deschide `ingestion/src/websocket.rs` și modifică ID-urile piețelor pe care dorești să le urmărești în variabila `assets_ids`.
+2.  **Configuration:**
+    Open `ingestion/src/websocket.rs` and update the `assets_ids` variable with the Polymarket Market IDs you wish to track.
 
-3.  **Lansare automată:**
-    Scriptul `RUN_PROJECT.sh` se ocupă de pornirea bazei de date, crearea mediului virtual Python și compilarea serviciului Rust:
+3.  **Launch Project:**
+    The `RUN_PROJECT.sh` script automates database startup, Python virtual environment setup, and Rust service compilation:
     ```bash
     chmod +x RUN_PROJECT.sh
     ./RUN_PROJECT.sh
     ```
 
-## 📈 Utilizare
+## 📈 Usage
 
-### Monitorizarea Ingerării
-Odată pornit, vei vedea în terminal log-uri de tipul:
+### Monitoring Ingestion
+Once started, you will see real-time logs in your terminal:
 `[INFO] Saved Trade -> Market: 0x... | Outcome: ... | Price: $...`
 
-### Accesarea Analizelor (API)
-API-ul rulează implicit pe portul `8000`. Poți accesa interfața interactivă Swagger aici:
-👉 `http://<IP_JETSON>:8000/docs`
+### Accessing the Analytics API
+The API runs on port `8000`. You can access the interactive Swagger documentation here:
+👉 `http://<JETSON_IP>:8000/docs`
 
-Folosește endpoint-ul `/api/markets/{market_id}/trends` pentru a vedea evoluția prețului și media mobilă.
+Use the `/api/markets/{market_id}/trends` endpoint to retrieve price history and calculated moving averages.
 
-## 🗄️ Structura Bazei de Date
-Tabelul `price_history` conține:
-*   `timestamp`: Timpul exact al tranzacției (UTC).
-*   `market_id`: Adresa contractului pieței.
-*   `outcome`: Rezultatul pariat (ex: "Yes", "No").
-*   `price`: Prețul (odds) la momentul respectiv.
-*   `size`: Volumul tranzacției.
+## 🗄️ Database Schema
+The `price_history` table includes:
+*   `timestamp`: Exact event time (UTC).
+*   `market_id`: The smart contract address of the market.
+*   `outcome`: The specific outcome (e.g., "Yes", "No").
+*   `price`: The odds/price at that moment.
+*   `size`: The trade volume.
 
-## 🔧 Depanare
-*   **Erori WebSocket:** Polymarket resetează conexiunile inactive. Scriptul de Rust are logică de **auto-reconnect** integrată (reîncearcă la fiecare 5 secunde).
-*   **Lipsă date în API:** Verifică dacă în terminal apar log-uri cu "Saved Trade". Dacă nu apar, înseamnă că piața aleasă nu are tranzacții active în acest moment.
+## 🔧 Troubleshooting
+*   **WebSocket Disconnects:** Polymarket frequently resets idle connections. The Rust service includes **auto-reconnect** logic (retries every 5 seconds).
+*   **No Data in API:** Ensure the chosen Market IDs are actively being traded on Polymarket. Check the terminal logs for "Saved Trade" messages.
 
 ---
-Proiect dezvoltat pentru monitorizare predictivă și trading algoritmic.
+Developed for predictive monitoring and algorithmic trading research.
