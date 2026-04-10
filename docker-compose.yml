@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: chronos_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-chronos_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password_here}
+      POSTGRES_DB: ${POSTGRES_DB:-chronos}
+    ports:
+      - "5432:5432"
+    volumes:
+      # Map the database data to a local directory (e.g., ./data) relative to this file
+      # When deployed on the Jetson Orin Nano, ensure this directory is on the NVMe drive.
+      - ./data:/var/lib/postgresql/data
+      # Automatically run the initialization SQL script on first startup
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
